@@ -35,7 +35,7 @@ func main() {
 		fatal(err)
 	}
 	fmt.Printf("Connected to MCP server; tools: %d\n", len(tools))
-	fmt.Println("Commands: get <payment-id> | pay <amount> <currency> <reference> | quit")
+	fmt.Println("Commands: get <payment-id> | pay <amount> <currency> <reference> | refund <payment-id> <amount> | quit")
 
 	scanner := bufio.NewScanner(os.Stdin)
 	for {
@@ -77,6 +77,27 @@ func main() {
 				continue
 			}
 			data, err := runner.PayPayment(ctx, amount, parts[2], parts[3], true)
+			if err != nil {
+				fmt.Println("error:", err)
+				continue
+			}
+			fmt.Println(agent.FormatPayment(data))
+		case "refund":
+			if len(parts) != 3 {
+				fmt.Println("usage: refund <payment-id> <amount>")
+				continue
+			}
+			var amount int64
+			if _, err := fmt.Sscan(parts[2], &amount); err != nil || amount <= 0 {
+				fmt.Println("invalid amount")
+				continue
+			}
+			fmt.Printf("Confirm refund of %s minor units for payment %s? (yes/no): ", parts[2], parts[1])
+			if !scanner.Scan() || strings.ToLower(strings.TrimSpace(scanner.Text())) != "yes" {
+				fmt.Println("refund cancelled")
+				continue
+			}
+			data, err := runner.RefundPayment(ctx, parts[1], amount, "", true)
 			if err != nil {
 				fmt.Println("error:", err)
 				continue

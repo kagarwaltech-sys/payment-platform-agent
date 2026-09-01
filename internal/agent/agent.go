@@ -47,6 +47,15 @@ func (a *Agent) PayPayment(ctx context.Context, amount int64, currency, referenc
 	})
 }
 
+func (a *Agent) RefundPayment(ctx context.Context, paymentID string, amount int64, idempotencyKey string, confirmed bool) (json.RawMessage, error) {
+	if !confirmed {
+		return nil, fmt.Errorf("refund requires explicit confirmation")
+	}
+	return a.call(ctx, "refund_payment", map[string]any{
+		"payment_id": paymentID, "amount": amount, "idempotency_key": idempotencyKey,
+	})
+}
+
 func (a *Agent) call(ctx context.Context, name string, arguments map[string]any) (json.RawMessage, error) {
 	result, err := a.session.CallTool(ctx, &mcp.CallToolParams{Name: name, Arguments: arguments})
 	if err != nil {
